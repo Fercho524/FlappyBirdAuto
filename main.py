@@ -2,88 +2,19 @@ import sys
 import pygame
 import random
 
+pygame.init()
+
 from utils import *
 from config import *
 
-pygame.init()
+from Bird import Bird
+from Pipe import Pipe
 
 
-# Inicialización de la pantalla
-screen = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT))
-pygame.display.set_caption("Flappy Bird")
-
-# Reloj
-clock = pygame.time.Clock()
-
-# Fuentes
-font = pygame.font.Font(None, 36)
-
-# Variables del juego
-GRAVITY = 1
-
-
-def show_score(score):
-    score_text = font.render("Puntaje: " + str(score), True, (0,0,0))
-    screen.blit(score_text, (10, 10))
-
-
-class Bird:
-    """
-    Este es el jugador, se puede elegir uno random o no.
-    """
-
-    def __init__(self,x,y,w,h,color,flap,human=False):
-        self.x = x
-        self.y = y
-        self.w = w
-        self.h = h
-        self.color = color
-        self.speed = 0
-        self.flap = flap
-        self.score = 0
-
-        self.state = "live"
-        self.human = human
-
-    def jump(self):
-        self.speed = self.flap
-
-    def draw(self,screen):
-        pygame.draw.rect(screen, self.color, [self.x, self.y, self.w, self.h], 0)
-
-    def update(self,gravity):
-        self.speed += gravity
-        self.y += self.speed
-
-    def get_move(self):
-        if random.random()<0.09:
-            self.jump()
-
-
-
-class Pipe:
-    """
-    El juego tiene sólo una tubería, que se mueve hacia la izquierda y reinicia su posición.
-    """
-
-    def __init__(self,x,y,w,h,color,speed):
-        self.x = x
-        self.y = y
-        self.w = w
-        self.h = h
-        self.color = color
-        self.speed = speed
-
-    def draw(self,screen):
-        pygame.draw.rect(screen, self.color, [self.x, self.y, self.w, self.h], 0)
-        pygame.draw.rect(screen, self.color, [self.x, self.y+self.h+150, self.w, SCREEN_HEIGHT], 0)
-
-    def update(self):
-        self.x -= self.speed
-
-        if self.x < -self.w:
-            self.x = SCREEN_WIDTH
-            self.h = random.randint(150, 350)
+def show_score(score,live_players):
+    info = f"Global Score : {score} Live Players : {live_players}"
+    score_text = FONT.render(info, True, (0,0,0))
+    SCREEN.blit(score_text, (10, 10))
 
 
 def gen_players(N):
@@ -103,8 +34,8 @@ def gen_players(N):
     return players
 
 
-players = gen_players(20)
-players.append(Bird(
+PLAYERS = gen_players(20)
+PLAYERS.append(Bird(
             x=50,
             y=SCREEN_HEIGHT // 2,
             w=50,
@@ -115,7 +46,7 @@ players.append(Bird(
         )   
 )
 
-live_players = len(players)
+live_players = len(PLAYERS)
 
 pipe = Pipe(
     x=SCREEN_WIDTH,
@@ -126,18 +57,17 @@ pipe = Pipe(
     speed=5
 )
 
-mean_score = 0
-
-# Bucle principal del juego
-running = True
+SCORE = 0
 
 
 def restart():
-    global pipe,players,live_players
+    global pipe,PLAYERS,live_players,SCORE
 
+    SCORE = 0
     pipe.x = SCREEN_WIDTH
-    players = gen_players(20)
-    players.append(Bird(
+    #pipe.speed = 5
+    PLAYERS = gen_players(20)
+    PLAYERS.append(Bird(
                 x=50,
                 y=SCREEN_HEIGHT // 2,
                 w=50,
@@ -148,81 +78,113 @@ def restart():
             )   
     )
 
-    live_players = len(players)
+    live_players = len(PLAYERS)
 
 
+def handle_events():
+    for event in pygame.event.get():
+        if event.type == pygame.QUIT:
+            sys.exit(0)
+        if event.type == pygame.KEYDOWN and event.key == pygame.K_SPACE:
+            for player in PLAYERS:
+                if player.human and player.state == "live":
+                    player.jump()
+
+
+def check_bounds():
+    global live_players
+
+    # EL escenario y el jugador deben colisionar en todo momento, si no lo hacen, el jugador ha salido de los límites.
+    for player in PLAYERS:
+        if player.state=="live":
+            if not colission([0,0,SCREEN_WIDTH,SCREEN_HEIGHT],[player.x,player.y,player.w,player.h]):
+                player.state = "dead"
+                live_players-=1
+
+
+def check_player_pipe_colissions():
+    global live_players
+
+    for player in PLAYERS:
+        if player.state=="live":
+            if check_pipe_collisions(player,pipe):
+                player.state = "dead"
+                live_players-=1
+
+
+def draw_background(screen):
+    screen.fill((255, 255, 255))
+
+
+def draw_players(screen):
+    for player in PLAYERS:
+        if player.state=="live":
+            player.draw(screen)
+
+
+def check_player_score():
+    global SCORE
+
+    for player in PLAYERS:
+        if player.state=="live":
+            if pipe.x < player.x + 50 and not check_pipe_collisions(player,pipe):
+                SCORE += 1
+                player.score += 1
+
+
+def update_players():
+    for player in PLAYERS:
+        if player.state == "live":
+            player.update()
 
 
 def main():
-    global live_players
+    global live_players,SCORE
 
     while live_players>0:
-        # Events and controls
-        for event in pygame.event.get():
-            if event.type == pygame.QUIT:
-                sys.exit(0)
-            if event.type == pygame.KEYDOWN and event.key == pygame.K_SPACE:
-                for player in players:
-                    if player.human and player.state == "live":
-                        player.jump()
+        # Eventos de cierre y control manual
+        handle_events()
 
-        # Si el jugador no es humano
-        for player in players:
-            if player.state=="live":
-                if not player.human:
-                    player.get_move()
-
-        # Player Moving
-        for player in players:
-            if player.state == "live":
-                player.update(GRAVITY)
+        # Player Moving, si el jugador no es humano planifica su movimiento
+        update_players()
 
         # Pipe Moving
         pipe.update()
 
-        # EL escenario y el jugador deben colisionar en todo momento, si no lo hacen, el jugador ha salido de los límites.
-        for player in players:
-            if player.state=="live":
-                if not colission([0,0,SCREEN_WIDTH,SCREEN_HEIGHT],[player.x,player.y,player.w,player.h]):
-                    player.state = "dead"
-                    live_players-=1
+        # Verifica que los jugadores estén dentro del escenario
+        check_bounds()
 
         # Si el jugador toca una tubería, se muere.
-        for player in players:
-            if player.state=="live":
-                if check_pipe_collisions(player,pipe):
-                    player.state = "dead"
-                    live_players-=1
+        check_player_pipe_colissions()
 
         # Si el jugador está entre una tubería y no la toca gana puntos.
-        for player in players:
-            if player.state=="live":
-                if pipe.x < player.x + 50 and not check_pipe_collisions(player,pipe):
-                    player.score += 1
+        check_player_score()
 
         # Fondo
-        screen.fill((255, 255, 255))
+        draw_background(SCREEN)
 
         # Jugador
-        for player in players:
-            if player.state=="live":
-                player.draw(screen)
+        draw_players(SCREEN)
 
         # Tuberías
-        pipe.draw(screen)
+        pipe.draw(SCREEN)
 
-        # Information
-        # for player in players:
-        #     mean_score+= player.score/len(players)
-        
-        show_score(live_players)
+        # Incremento de velocidad
+        if SCORE % 100 == 0 and SCORE >= 100:
+            pipe.speed+= SPEED_INC
 
+        # Despliegue de información
+        show_score(SCORE,live_players)
+
+        # Reinicio cuando todos mueren
         if live_players == 0:
             restart()
 
         # Update screen
         pygame.display.update()
-        clock.tick(30)
+        CLOCK.tick(30)
+
+
 
 if __name__ == "__main__":
     main()
