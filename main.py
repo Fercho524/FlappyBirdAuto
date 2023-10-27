@@ -9,7 +9,9 @@ from config import *
 
 from Bird import Bird
 from Pipe import Pipe
+from GA import *
 
+poblation = 100
 
 def show_score(score,live_players):
     info = f"Global Score : {score} Live Players : {live_players}"
@@ -34,8 +36,9 @@ def gen_players(N):
     return players
 
 
-PLAYERS = gen_players(20)
-PLAYERS.append(Bird(
+PLAYERS = gen_players(poblation)
+# Generamos el jugador humano
+"""PLAYERS.append(Bird(
             x=50,
             y=SCREEN_HEIGHT // 2,
             w=50,
@@ -44,7 +47,7 @@ PLAYERS.append(Bird(
             flap=-12,
             human=True            
         )   
-)
+)"""
 
 live_players = len(PLAYERS)
 
@@ -65,18 +68,10 @@ def restart():
 
     SCORE = 0
     pipe.x = SCREEN_WIDTH
-    #pipe.speed = 5
-    PLAYERS = gen_players(20)
-    PLAYERS.append(Bird(
-                x=50,
-                y=SCREEN_HEIGHT // 2,
-                w=50,
-                h=30,
-                color=(0,0,0),
-                flap=-12,
-                human=True            
-            )   
-    )
+    pipe.speed = 5
+    for player in PLAYERS:
+        player.state="live"
+        player.score=0
 
     live_players = len(PLAYERS)
 
@@ -111,7 +106,6 @@ def check_player_pipe_colissions():
                 player.state = "dead"
                 live_players-=1
 
-
 def draw_background(screen):
     screen.fill((255, 255, 255))
 
@@ -127,26 +121,28 @@ def check_player_score():
 
     for player in PLAYERS:
         if player.state=="live":
-            if pipe.x < player.x + 50 and not check_pipe_collisions(player,pipe):
-                SCORE += 1
+            #if pipe.x < player.x + 50 and not check_pipe_collisions(player,pipe):
+            if not check_pipe_collisions(player,pipe):
+                #SCORE += 1
                 player.score += 1
 
-
-def update_players():
+                
+def update_players(sc, pipe):
     for player in PLAYERS:
         if player.state == "live":
-            player.update()
-
+            center_bird, center_pipe, distance = player.measure(sc, pipe)
+            player.update([center_bird[0], center_bird[1], center_pipe[0],center_pipe[1], distance, pipe.speed])
 
 def main():
-    global live_players,SCORE
-
+    global live_players,SCORE, PLAYERS
+    history = []
     while live_players>0:
         # Eventos de cierre y control manual
         handle_events()
 
         # Player Moving, si el jugador no es humano planifica su movimiento
-        update_players()
+        #measure_distances(SCREEN, pipe)
+        update_players(SCREEN, pipe)
 
         # Pipe Moving
         pipe.update()
@@ -169,6 +165,7 @@ def main():
         # Tuberías
         pipe.draw(SCREEN)
 
+
         # Incremento de velocidad
         if SCORE % 100 == 0 and SCORE >= 100:
             pipe.speed+= SPEED_INC
@@ -177,13 +174,14 @@ def main():
         show_score(SCORE,live_players)
 
         # Reinicio cuando todos mueren
-        if live_players == 0:
+        if live_players == 0:            
+            # Revisamos los mejores individuos de la generacion
+            PLAYERS,history = evolve(PLAYERS,history)
             restart()
 
         # Update screen
         pygame.display.update()
         CLOCK.tick(30)
-
 
 
 if __name__ == "__main__":

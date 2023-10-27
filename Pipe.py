@@ -27,3 +27,7 @@ class Pipe:
         if self.x < -self.w:
             self.x = SCREEN_WIDTH
             self.h = random.randint(150, 350)
+
+    def getCenter(self,screen):
+        center = (int(self.x + (self.w/2)), int(self.y + (self.h+75)))
+        return center
