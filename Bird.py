@@ -1,3 +1,4 @@
+import os
 import pygame
 import random
 import scipy.spatial.distance as distances
@@ -6,6 +7,17 @@ from config import *
 from BrainV2 import *
 
 structure = [6,4,1]
+
+
+def get_bird_assets(color:int):
+    colors = ["blue","red","yellow"]
+    color = colors[color]
+
+    return [
+        pygame.transform.scale(pygame.image.load(os.path.join("assets/sprites", f"{color}_bird_01.png")),(BIRD_WIDTH,BIRD_HEIGHT)),
+        pygame.transform.scale(pygame.image.load(os.path.join("assets/sprites", f"{color}_bird_02.png")),(BIRD_WIDTH,BIRD_HEIGHT)),
+        pygame.transform.scale(pygame.image.load(os.path.join("assets/sprites", f"{color}_bird_03.png")),(BIRD_WIDTH,BIRD_HEIGHT)),
+    ]
 
 class Bird:
     """
@@ -27,13 +39,23 @@ class Bird:
         self.state = "live"
         self.human = human
 
+        self.animstep = 0
+
         self.brain = Brain(structure, []) if brain == "random" else Brain(structure, brain)
 
     def jump(self):
         self.speed = self.flap
 
     def draw(self,screen):
-        pygame.draw.rect(screen, self.color, [self.x, self.y, self.w, self.h], 0)
+        if self.animstep >= 10:
+            self.animstep = 0
+
+        screen.blit(get_bird_assets(self.color)[self.animstep//5], (self.x,self.y, self.w, self.h))
+        self.animstep += 1
+
+        if self.animstep > len(get_bird_assets(self.color)):
+            self.animstep = 0
+        #pygame.draw.rect(screen, self.color, [self.x, self.y, self.w, self.h], 0)
 
     def update(self, enviroment):
         # Sólo cae

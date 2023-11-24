@@ -1,3 +1,4 @@
+import os
 import sys
 import pygame
 import random
@@ -14,8 +15,8 @@ from GA import *
 poblation = 100
 
 def show_score(score,live_players):
-    info = f"Global Score : {score} Live Players : {live_players}"
-    score_text = FONT.render(info, True, (0,0,0))
+    info = f"Global Score : {int(SCORE)} Live Players : {live_players}"
+    score_text = FONT.render(info, True, WHITE)
     SCREEN.blit(score_text, (10, 10))
 
 
@@ -28,7 +29,7 @@ def gen_players(N):
             y=SCREEN_HEIGHT // 2,
             w=50,
             h=30,
-            color=(random.randint(0,255),random.randint(0,255),random.randint(0,255)),
+            color=random.randint(0,2),
             flap=-12,
             human=False            
         ))
@@ -106,8 +107,11 @@ def check_player_pipe_colissions():
                 player.state = "dead"
                 live_players-=1
 
+
+sky = pygame.transform.scale(pygame.image.load(os.path.join("assets/sprites", f"background-day.png")),(SCREEN_WIDTH,SCREEN_HEIGHT))
+
 def draw_background(screen):
-    screen.fill((255, 255, 255))
+    screen.blit(sky, (0,0,SCREEN_WIDTH, SCREEN_HEIGHT))
 
 
 def draw_players(screen):
@@ -125,6 +129,7 @@ def check_player_score():
             if not check_pipe_collisions(player,pipe):
                 #SCORE += 1
                 player.score += 1
+                SCORE+=1/len(PLAYERS)
 
                 
 def update_players(sc, pipe):

@@ -1,7 +1,17 @@
+import os
 import random
 import pygame 
 
 from config import *
+
+def get_pipe_assets(rotate,width,height):
+    colors = ["green","red"]
+    color = "green"
+
+    scaled_sprite = pygame.transform.scale(pygame.image.load(os.path.join("assets/sprites", f"pipe-{color}.png")),(width,height))
+    sprite = pygame.transform.rotate(scaled_sprite, 180 if rotate else 0)
+    return sprite
+
 
 
 class Pipe:
@@ -18,8 +28,8 @@ class Pipe:
         self.speed = speed
 
     def draw(self,screen):
-        pygame.draw.rect(screen, self.color, [self.x, self.y, self.w, self.h], 0)
-        pygame.draw.rect(screen, self.color, [self.x, self.y+self.h+150, self.w, SCREEN_HEIGHT], 0)
+        screen.blit(get_pipe_assets(True,self.w, self.h), (self.x,self.y, self.w, self.h))
+        screen.blit(get_pipe_assets(False,self.w, SCREEN_HEIGHT/1.5), (self.x, self.y+self.h+150, self.w, SCREEN_HEIGHT))
 
     def update(self):
         self.x -= self.speed

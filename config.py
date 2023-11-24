@@ -18,3 +18,6 @@ SCREEN = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT))
 pygame.display.set_caption("Flappy Bird")
 
 CLOCK = pygame.time.Clock()
+
+BIRD_WIDTH = 50
+BIRD_HEIGHT = 30

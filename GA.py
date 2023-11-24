@@ -92,7 +92,7 @@ def evolve(generation, history):
             y=SCREEN_HEIGHT // 2,
             w=50,
             h=30,
-            color=(random.randint(0,255),random.randint(0,255),random.randint(0,255)),
+            color=random.randint(0,2),
             flap=-12,
             human=False,
             brain=offsring)
